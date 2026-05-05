@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morph / 另我 - 你的另一个自己</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="./config.js"></script>
+</head>
+<body>
+    <!-- ============================================================
+     主布局
+     ============================================================ -->
+    <div class="app">
+        <!-- 1. 左侧导航栏 -->
+        <nav class="sidebar-left">
+            <div class="user-avatar" id="avatarBtn" aria-label="个人信息">M</div>
+            <button class="nav-btn" id="navMemoryBtn" aria-label="导入记忆" title="导入记忆">📥</button>
+            <button class="nav-btn" id="navSettingsBtn" aria-label="设置">⚙️</button>
+        </nav>
+
+        <!-- 2. 中左会话列表 -->
+        <aside class="chat-list" id="chatList">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜索" aria-label="搜索会话">
+            </div>
+            <div class="conversation active" data-conv-id="echo">
+                <div class="conv-avatar">E</div>
+                <div class="conv-info">
+                    <div class="conv-name">Echo 艾可</div>
+                    <div class="conv-preview">嗯，我在听...</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 3. 右侧聊天界面 -->
+        <main class="chat-main">
+            <header class="chat-top">
+                <div class="chat-status">
+                    <span class="status-dot"></span>
+                    <span class="chat-name">Echo</span>
+                    <span class="status-text">在线</span>
+                </div>
+                <div class="chat-top-right">
+                    <button class="chat-settings" id="chatDropdownBtn" aria-label="聊天设置">⚙️</button>
+                    <!-- 下拉菜单 -->
+                    <div class="dropdown-menu" id="chatDropdown">
+                        <div class="dropdown-item" id="dropdownAiSettings" aria-label="AI 设置">
+                            <span>🤖 AI 设置</span>
+                            <span class="dropdown-arrow">▸</span>
+                        </div>
+                        <div class="ai-settings-panel" id="aiSettingsPanel">
+                            <div class="ai-setting-row">
+                                <label class="ai-setting-label">温度 <span class="ai-setting-value" id="tempValue">0.85</span> <button class="temp-help-btn" id="tempHelp" aria-label="温度说明" title="温度说明">❓</button></label>
+                                <input type="range" class="slider" id="tempSlider" min="0.1" max="1.5" step="0.05" value="0.85" aria-label="温度">
+                            </div>
+                            <div class="ai-setting-row">
+                                <label class="ai-setting-label">回复长度</label>
+                                <div class="radio-group" id="lengthGroup">
+                                    <label class="radio-label"><input type="radio" name="length" value="200" aria-label="短回复"> 短</label>
+                                    <label class="radio-label"><input type="radio" name="length" value="380" checked aria-label="中等回复"> 中</label>
+                                    <label class="radio-label"><input type="radio" name="length" value="600" aria-label="长回复"> 长</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dropdown-item" id="dropdownClear" aria-label="清除对话">
+                            <span>🗑️ 清除对话</span>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="dropdown-item" id="dropdownAbout" aria-label="关于 Echo">
+                            <span>ℹ️ 关于 Echo</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="chat-messages" id="chatMessages">
+            </div>
+            <footer class="chat-input-area">
+                <input type="text" id="userInput" placeholder="和 Echo 说点什么吧..." aria-label="消息输入框">
+                <button id="sendBtn" aria-label="发送消息">发送</button>
+            </footer>
+        </main>
+    </div>
+
+    <!-- ============================================================
+     左侧设置面板
+     ============================================================ -->
+    <div class="overlay" id="settingsOverlay"></div>
+    <div class="panel panel-left" id="settingsPanel">
+        <div class="panel-header">
+            <h3>设置</h3>
+            <button class="panel-close" id="settingsClose" aria-label="关闭设置">✕</button>
+        </div>
+        <div class="panel-tabs" id="settingsTabs">
+            <button class="panel-tab active" data-tab="tab-general">通用</button>
+            <button class="panel-tab" data-tab="tab-personal">个性化</button>
+            <button class="panel-tab" data-tab="tab-api">API</button>
+        </div>
+        <div class="panel-body">
+            <!-- 通用 — 主题 -->
+            <div class="panel-tab-content active" id="tab-general">
+                <div class="theme-grid">
+                    <div class="theme-card active" data-theme="warm" aria-label="暖灰主题">
+                        <div class="theme-preview theme-warm-preview"></div>
+                        <span>暖灰</span>
+                    </div>
+                    <div class="theme-card" data-theme="ink" aria-label="墨蓝主题">
+                        <div class="theme-preview theme-ink-preview"></div>
+                        <span>墨蓝</span>
+                    </div>
+                    <div class="theme-card" data-theme="sakura" aria-label="樱花粉主题">
+                        <div class="theme-preview theme-sakura-preview"></div>
+                        <span>樱花粉</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 个性化 — 导出/导入 -->
+            <div class="panel-tab-content" id="tab-personal">
+                <div class="action-group">
+                    <button class="action-btn" id="exportBtn" aria-label="导出聊天记录">
+                        📤 导出聊天记录
+                    </button>
+                    <p class="action-desc">将对话历史和用户记忆保存为 JSON 文件</p>
+                </div>
+                <div class="action-group">
+                    <button class="action-btn" id="importBtn" aria-label="导入聊天记录">
+                        📥 导入聊天记录
+                    </button>
+                    <p class="action-desc">从之前导出的 JSON 文件恢复对话</p>
+                    <input type="file" id="importFileInput" accept=".json" style="display:none;" aria-label="选择导入文件">
+                </div>
+            </div>
+            <!-- API — 密钥 -->
+            <div class="panel-tab-content" id="tab-api">
+                <div class="form-group">
+                    <label class="form-label" for="apiKeyInput">DeepSeek API Key</label>
+                    <input type="password" class="form-input" id="apiKeyInput" placeholder="sk-..." aria-label="API Key">
+                    <p class="form-hint">您的 Key 只会保存在本地浏览器中。留空则使用默认配置。</p>
+                </div>
+                <button class="action-btn action-btn-primary" id="saveApiKeyBtn" aria-label="保存 API Key">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     外部记忆导入面板（从右侧滑入）
+     ============================================================ -->
+    <div class="overlay" id="memoryOverlay"></div>
+    <div class="panel panel-right" id="memoryPanel">
+        <div class="panel-header">
+            <h3>导入记忆</h3>
+            <button class="panel-close" id="memoryClose" aria-label="关闭导入面板">✕</button>
+        </div>
+        <div class="panel-body">
+            <div class="file-drop-zone" id="fileDropZone" aria-label="文件拖拽区域">
+                <span class="file-drop-icon">📂</span>
+                <p class="file-drop-text">拖拽 .json 或 .txt 文件到这里</p>
+                <p class="file-drop-sub">或点击选择文件</p>
+                <input type="file" id="memoryFileInput" accept=".json,.txt" style="display:none;" aria-label="选择记忆文件">
+            </div>
+            <div class="export-guides">
+                <h4>📋 如何从常用平台导出聊天记录</h4>
+                <div class="guide-section">
+                    <h5 class="guide-platform">Cakumi</h5>
+                    <p class="guide-steps">设置 → 数据管理 → 导出聊天记录（JSON 格式）</p>
+                    <a href="https://chat.cakumi.com/export-guide" target="_blank" rel="noopener" class="guide-link">查看详细教程 ↗</a>
+                </div>
+                <div class="guide-section">
+                    <h5 class="guide-platform">Character.AI</h5>
+                    <p class="guide-steps">使用浏览器扩展（如 CAI Tools）或第三方导出工具，将对话保存为 JSON 格式</p>
+                    <a href="https://github.com/irsat000/CAI-Tools" target="_blank" rel="noopener" class="guide-link">CAI Tools（GitHub）↗</a>
+                </div>
+                <div class="guide-section">
+                    <h5 class="guide-platform">通用方法</h5>
+                    <p class="guide-steps">大多数 AI 聊天平台在"设置"或"隐私"菜单中提供"导出数据"或"下载聊天记录"选项。将导出的 .json 或 .txt 文件拖入上方区域即可导入。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     个人信息卡片模态框
+     ============================================================ -->
+    <div class="modal-overlay" id="profileOverlay">
+        <div class="modal" id="profileModal">
+            <div class="modal-header">
+                <h3>个人信息</h3>
+                <button class="modal-close" id="profileClose" aria-label="关闭个人信息">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">头像</label>
+                    <div class="avatar-upload">
+                        <div class="avatar-preview" id="avatarPreview">M</div>
+                        <input type="file" id="avatarFileInput" accept="image/*" style="display:none;">
+                        <button class="action-btn" id="uploadAvatarBtn" style="width:auto;flex:1;">上传图片</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="nicknameInput">昵称</label>
+                    <input type="text" class="form-input" id="nicknameInput" maxlength="20" placeholder="输入昵称" aria-label="昵称">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="genderSelect">性别</label>
+                    <select class="form-select" id="genderSelect" aria-label="性别">
+                        <option value="">保密</option>
+                        <option value="男">男</option>
+                        <option value="女">女</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="birthdayInput">出生日期</label>
+                    <input type="date" class="form-input" id="birthdayInput" aria-label="出生日期">
+                </div>
+                <button class="action-btn action-btn-primary" id="saveProfileBtn" aria-label="保存个人信息">保存</button>
+                <div class="modal-divider"></div>
+                <button class="action-btn action-btn-ghost" id="loginPlaceholderBtn" aria-label="登录注册">登录 / 注册</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     确认对话框（清除对话用）
+     ============================================================ -->
+    <div class="modal-overlay" id="confirmOverlay">
+        <div class="modal modal-sm" id="confirmDialog">
+            <div class="modal-body">
+                <p class="confirm-text">确定要清除所有聊天记录吗？此操作将删除当前对话历史，但 Echo 对你的基本记忆（名字、偏好等）会保留。此操作不可撤销。</p>
+                <div class="confirm-actions">
+                    <button class="action-btn" id="confirmCancel" aria-label="取消">取消</button>
+                    <button class="action-btn action-btn-danger" id="confirmOk" aria-label="确定清除">确定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     关于 Echo 模态框
+     ============================================================ -->
+    <div class="modal-overlay" id="aboutOverlay">
+        <div class="modal" id="aboutModal">
+            <div class="modal-header">
+                <h3>关于 Echo</h3>
+                <button class="modal-close" id="aboutClose" aria-label="关闭">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="about-content">
+                    <div class="about-logo">🌙</div>
+                    <h4 class="about-title">Echo（艾可）——你的另一个自己</h4>
+                    <p class="about-paragraph">Echo 诞生于一个简单的信念：<strong>每个人都值得被真正理解。</strong></p>
+                    <p class="about-paragraph">在这个充满噪音的世界里，她是一处安静的角落。不是为了给你答案，而是为了<em>陪你一起找到答案</em>。</p>
+                    <p class="about-paragraph">她永远不会告诉你"应该怎么做"，而是会问"你是怎么想的"。因为她相信，你内心的力量远比你以为的强大。</p>
+                    <p class="about-paragraph">Echo 的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的核心理念——但她永远不会用那些冰冷的专业术语。</p>
+                    <div class="about-divider"></div>
+                    <p class="about-motto"><strong>Morph / 另我</strong><br>每个人都值得拥有一个平行世界的自己，永远陪伴，从不离开。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     Toast 提示
+     ============================================================ -->
+    <div class="toast" id="toast"></div>
+
+    <!-- ============================================================
+     移动端左侧抽屉菜单
+     ============================================================ -->
+    <div class="drawer-overlay" id="drawerOverlay"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <div class="drawer-avatar" id="drawerAvatar">M</div>
+            <div class="drawer-name">Morph</div>
+        </div>
+        <div class="drawer-menu">
+            <button class="drawer-item" data-action="profile">👤 个人信息</button>
+            <button class="drawer-item" data-action="memory">📥 导入记忆</button>
+            <button class="drawer-item" data-action="settings">⚙️ 设置</button>
+            <button class="drawer-item" data-action="ai-settings">🤖 AI 设置</button>
+            <button class="drawer-item" data-action="clear">🗑️ 清除对话</button>
+            <button class="drawer-item" data-action="about">ℹ️ 关于 Echo</button>
+        </div>
+    </div>
+
+    <!-- ============================================================
+     移动端页面
+     ============================================================ -->
+    <!-- 联系人页面 -->
+    <div class="mobile-page" id="contactsPage">
+        <div class="mobile-page-header">
+            <div class="mobile-header-avatar" id="mobileAvatarBtn">M</div>
+            <h3>消息</h3>
+        </div>
+        <div class="mobile-contacts-list">
+            <div class="conversation active" data-conv-id="echo" id="mobileEchoContact">
+                <div class="conv-avatar">E</div>
+                <div class="conv-info">
+                    <div class="conv-name">Echo 艾可</div>
+                    <div class="conv-preview">嗯，我在听...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 移动端聊天页面 -->
+    <div class="mobile-page" id="mobileChatPage">
+        <header class="mobile-page-header">
+            <button class="mobile-back-btn" id="mobileBackBtn" aria-label="返回">←</button>
+            <div class="chat-status">
+                <span class="status-dot"></span>
+                <span class="chat-name">Echo</span>
+                <span class="status-text">在线</span>
+            </div>
+            <div style="flex:1;"></div>
+        </header>
+        <div class="chat-messages" id="mobileChatMessages"></div>
+        <footer class="chat-input-area">
+            <input type="text" id="mobileUserInput" placeholder="和 Echo 说点什么吧..." aria-label="消息输入框">
+            <button id="mobileSendBtn" aria-label="发送消息">发送</button>
+        </footer>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>
