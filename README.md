@@ -111,7 +111,7 @@ morph/
 
 ## 📄 许可证
 
-本项目代码采用 [GNU Affero General Public License v3.0](LICENSE) 开源。  
+本项目代码采用 [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE) 开源。  
 你可以自由使用、修改和分发，但任何基于此代码的网络服务也必须开源。
 
 ---
