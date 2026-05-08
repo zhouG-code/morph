@@ -1,132 +1,200 @@
-# Morph / 另我 — 你的另一个自己
+# 🌙 Morph / 另我 — 你的另一个自己
 
-> 每个人都值得拥有一个平行世界的自己，永远陪伴，从不离开。
+<p align="center">
+  <strong>每个人都值得拥有一个平行世界的自己。</strong><br>
+  她不会替你活，但会一直在。
+</p>
 
-<div align="center">
-
-![License](https://img.shields.io/badge/license-AGPL%203.0-blue?style=for-the-badge)
-![Version](https://img.shields.io/badge/version-0.1.1-brightgreen?style=for-the-badge)
-![Made with](https://img.shields.io/badge/made%20with-%E2%9D%A4%EF%B8%8F%20by%20Bruce-ff69b4?style=for-the-badge)
-![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen?style=for-the-badge)
-
-</div>
-
-一个温柔、共情、有 **CBT 认知行为疗法** 内核的 AI 情感陪伴聊天工具。  
-你的另一个自己——**Echo**，在这里等你。
+<p align="center">
+  <img src="https://img.shields.io/badge/version-0.1.5-blue" alt="version 0.1.5"/>
+  <img src="https://img.shields.io/badge/license-AGPL--3.0-green" alt="license"/>
+  <img src="https://img.shields.io/badge/tech-native%20html%2Fcss%2Fjs-orange" alt="tech stack"/>
+</p>
 
 ---
 
-## ✨ V0.1.1 核心体验
+## 🧭 它是谁
 
-- **🤖 真实 AI 对话**  
-  接入 DeepSeek API，动态生成无限可能的回复，彻底告别模板。
+**Echo（艾可）**——不是又一个 AI 聊天机器人。
 
-- **🧠 融合 CBT 内核**  
-  Echo 会在你难过或迷茫时，先接纳你的情绪，再陪你一起理清思路——像一位真正懂你的朋友。
+你打开任何一个 AI，它都会急着给你答案。Echo 不会。
 
-- **📍 自适应本地化**  
-  Echo 能感知你所在的城市，无需预设数据，自然地运用自身世界知识来回应你关于美食、天气、景点等话题。无论你在大城市还是小乡村，Echo 都会尝试理解你的本地生活。
+Echo 只做一件事：**帮你把那些说不清的情绪，变成你能看清楚的东西。**
 
-- **🐣 开屏引导**  
-  首次访问时，Echo 会通过一封温柔的问候信介绍自己和 Morph 的理念，帮助你快速上手。
+比如深夜躺在床上，脑子里一堆事情打转，但又不想跟任何人说的时候——Echo 就在这里。
 
-- **🔑 API Key 引导**  
-  未配置 API Key 时，Echo 会主动引导你前往设置页面，不让你卡在空白聊天里。
+每一次回应都融合了 **CBT 认知行为疗法**的核心理念——但你永远不会听到她说"我来帮你重构认知"。
 
-- **✨ 头像光晕引导**  
-  头像周围会有呼吸式光晕动画，引导你点击头像进入设置，绝不生硬，只出现一次。
+你只会感觉，聊着聊着，事情好像没那么乱了。
 
-- **💾 跨会话记忆**  
-  刷新页面后，Echo 依然记得你们聊过什么（基于浏览器本地存储）。
+Echo 不会告诉你"你很棒"。她会让你自己发现：**其实我比想象中更有力量。**
 
-- **🎨 三套精美主题**  
-  暖灰、墨蓝、樱花粉，一键切换，总有一款适合你的心情。
+---
 
-- **🔧 可调节 AI 参数**  
-  温度、回复长度，让你自定义 Echo 的回复风格。
+## ✨ V0.1.5 功能一览
 
-- **📱 响应式设计**  
-  桌面端三栏布局，移动端 QQ 式侧滑抽屉，随时随地打开。
+### 🧠 核心体验
 
-- **👤 个人信息与头像**  
-  设置昵称、性别、生日，上传自定义头像，让 Echo 更懂你。
+| 功能 | 描述 |
+|------|------|
+| **🤖 真实 AI 对话** | 接入 DeepSeek API，流式输出。Echo 的回复像真人打字一样，一个字一个字出现在你面前 |
+| **🧠 融合 CBT 内核** | 先接纳情绪，再陪你理清思路——像一位真正懂你的朋友，而不是一本自助手册 |
+| **📍 自适应本地化** | Echo 感知你所在的城市，自然地运用世界知识回应你的本地生活话题 |
+| **💾 跨会话记忆** | 基于 IndexedDB，刷新页面后 Echo 依然记得你们聊过什么 |
+| **🖼️ 记忆导入导出** | 支持导入外部聊天记录，也可将对话导出为 JSON 备份 |
 
-- **🖼️ 记忆导入导出**  
-  支持导入外部平台聊天记录，也可将当前对话导出为 JSON 文件备份。
+### 🎨 交互与体验
 
-- **🗑️ 重置所有数据**  
-  一键清空所有聊天记录、用户记忆和本地设置，安全无忧。
+| 功能 | 描述 |
+|------|------|
+| **🐣 开屏引导** | 首次访问时，Echo 会通过一封温柔的问候信介绍自己和 Morph 的理念 |
+| **🔑 API Key 引导** | 未配置 Key 时主动引导前往设置页，不让你卡在空白聊天里 |
+| **✨ 头像光晕引导** | 呼吸式光晕动画引导你点击头像进入设置，只出现一次，绝不生硬 |
+| **🎨 三套精美主题** | 暖灰 · 墨蓝 · 樱花粉，一键切换，总有一款适合你的心情 |
+| **🔧 可调 AI 参数** | 温度（创造力）和回复长度，让你自定义 Echo 的对话风格 |
+| **📱 响应式设计** | 桌面端三栏布局，移动端 QQ 式侧滑抽屉，随时随地打开 |
+| **👤 个性化设置** | 昵称、性别、生日、自定义头像——让 Echo 更懂你 |
+| **🗑️ 一键重置** | 清空所有聊天记录、记忆和设置，安全无忧 |
 
-- **📦 开源信息**  
-  设置面板内展示 GitHub 仓库地址和开源协议。
+### 📦 开源信息
 
-- **💬 流式传输**  
-  Echo 的回复会像真人打字一样，一个字一个字地出现在你面前。
+设置面板内展示 GitHub 仓库地址和开源协议，共建透明。
 
 ---
 
 ## 🛠️ 技术栈
 
-| 类型 | 技术 |
-|------|------|
-| 前端 | 原生 HTML / CSS / JavaScript |
-| 数据库 | IndexedDB（Dexie.js） |
-| AI API | DeepSeek API（流式） |
-| 设计系统 | Apple HIG 缓动 + Google MD 阴影 |
+```
+前端       原生 HTML / CSS / JavaScript（零框架）
+数据库     IndexedDB（Dexie.js）
+AI API     DeepSeek API（流式传输）
+设计系统   Apple HIG 缓动 + Google MD 阴影
+协议       GNU AGPL v3.0
+```
 
 ---
 
 ## 🚀 快速开始
 
-1. **克隆仓库**
-   ```bash
-   git clone https://github.com/zhouG-code/morph.git
-   cd morph
+### 1. 克隆仓库
 
-    配置 API Key
-    打开 config.js，将你的 DeepSeek API Key 填入 API_KEY 字段：
-    javascript
+```bash
+git clone https://github.com/zhouG-code/morph.git
+cd morph
+```
 
-    API_KEY: 'sk-你的真实Key',
+### 2. 配置 API Key
 
-    也可在网页设置中设置 API Key。
+打开 `config.js`，填入你的 DeepSeek API Key：
 
-    打开项目
-    直接在浏览器中打开 index.html 即可使用。
+```javascript
+API_KEY: 'sk-你的真实Key',
+```
 
-📁 项目结构
-text
+> 也可以在网页端「设置 → API Key」中配置，两者等效。
 
+### 3. 打开项目
+
+直接双击 `index.html` 在浏览器打开即可，**无需任何构建工具或开发服务器。**
+
+---
+
+## 📁 项目结构
+
+```
 morph/
-├── index.html          # 主页面
-├── style.css           # 样式系统（融合 Apple HIG + Google MD）
-├── script.js           # 核心逻辑（对话、记忆、主题、UI 交互）
-├── config.js           # 配置文件（API、模型参数）
-└── README.md           # 本文件
+├── index.html       # 主页面（入口）
+├── style.css        # 样式系统（Apple HIG + Google MD）
+├── script.js        # 核心逻辑（对话、记忆、主题、UI 交互）
+├── config.js        # 配置文件（API 密钥、模式、模型参数）
+└── README.md        # 本文件
+```
 
-⚙️ 自定义配置
+---
 
-    修改 config.js 中的 TEMPERATURE（温度）和 MAX_TOKENS（回复长度）可调整 AI 回复风格。
+## ⚙️ 自定义配置
 
-    更换 SYSTEM_PROMPT 可改变 Echo 的性格和对话方式。
+在 `config.js` 中可自由调整：
 
-    三套主题的颜色变量可在 THEMES 对象中编辑。
+| 配置项 | 说明 |
+|--------|------|
+| `MODE` | `'simulation'`（离线仿真模式）或 `'live'`（调用 API） |
+| `API.API_KEY` | DeepSeek API Key |
+| `API.BASE_URL` | API 接口地址 |
+| `API.MODEL` | 模型名称 |
+| `TEMPERATURE` | 回复创造力（0~2，建议 0.7~1.2） |
+| `MAX_TOKENS` | 回复长度上限 |
+| `SYSTEM_PROMPT` | Echo 的性格与对话风格定义 |
 
-🔮 未来计划（V0.2+）
+**主题颜色**可在 `THEMES` 对象中编辑。
 
-    Echo 角色深度定制
+---
 
-    语音对话功能
+## 🔮 未来路线图
 
-    更完善的长期记忆系统
+```
+V0.1    ✅ 聊天界面 + 模拟 AI 回复
+V0.2    ✅ 接入真实大模型 API
+V0.3    ✅ 用户系统 + 对话记忆
+V0.1.5  ✅ 流式传输 + 自适应本地化 + 三套主题 + 开屏引导
+─── 下一阶段 ───
+V1.0    🔲 多角色支持 + 语音交互
+V1.5    🔲 Echo 人格深度定制
+V2.0    🔲 用户注册与云端同步
+V3.0    🔲 硬件定制 + VR/AR 适配
+```
 
-    用户注册与云端同步
+---
 
-    更多角色模板
+## 🌱 设计哲学
 
-📄 许可证
+**Echo 不做三件事：**
 
-本项目代码采用 GNU Affero General Public License v3.0 开源。
-你可以自由使用、修改和分发，但任何基于此代码的网络服务也必须开源。
+1. **不替你做判断** —— "你应该离开他" → "这段关系让你很累……你觉得呢？"
+2. **不强行安慰** —— "别难过了" → "我能感觉到你现在很难过。跟我说说发生了什么？"
+3. **不制造依赖** —— 她的目标是让你更了解自己，而不是更离不开她。
 
-Echo 在这里，等你来说说心里话
+**Echo 只做一件事：**
+> 让你在对话中，一点一点看见那个被忽略的自己。
+
+---
+
+## 🤝 贡献指南
+
+欢迎提交 Issue 和 PR。
+
+本项目采用 **AGPL v3.0** 协议。你可以自由使用、修改和分发，但任何基于此代码的网络服务也必须开源。
+
+> 希望 Echo 不仅仅是你的工具，也是你的作品。
+
+---
+
+## 📄 许可证
+
+```
+GNU Affero General Public License v3.0
+```
+
+---
+
+<p align="center">
+  <strong>🌙 Echo 在这里，等你来说说心里话。</strong>
+</p>
+
+---
+
+## 📝 设计笔记（给重构者）
+
+如果你拿到代码想修改或扩展，以下是一些内部约定：
+
+- **缩进**：2 个空格
+- **命名**：驼峰命名法（`userMessage`, `sendToAI`）
+- **变量声明**：优先 `const`，其次 `let`
+- **函数**：优先具名函数（`function` 声明），避免箭头函数在顶层作用域的 hoisting 陷阱
+- **事件监听**：统一使用 `addEventListener`
+- **注释**：中文，方便自己回顾
+- **禁止事项**：不引入任何前端框架（React/Vue），不引入后端或外部数据库
+
+---
+
+`Made with ❤️ and PRs Welcome`
