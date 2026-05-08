@@ -128,32 +128,39 @@ async function* sendToAI(userText) {
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
+
       const lines = buffer.split('\n');
-      buffer = lines.pop();  // 保留未完成的行
+      buffer = lines.pop() || '';
 
-      for (let i = 0; i < lines.length; i++) {
-        const trimmed = lines[i].trim();
-        if (!trimmed || trimmed.indexOf('data: ') !== 0) continue;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
 
-        const data = trimmed.slice(6);
-        if (data === '[DONE]') {
-          // 流正常结束 — 保存最终消息
-          State.chatHistory.push({ role: 'assistant', content: fullReply });
-          await saveMessage('user', userText);
-          await saveMessage('assistant', fullReply);
-          yield '__DONE__';
-          return;
-        }
+        if (trimmed.startsWith('data: ')) {
+          const data = trimmed.slice(6).trim();
 
-        try {
-          const parsed = JSON.parse(data);
-          const delta = parsed.choices && parsed.choices[0] && parsed.choices[0].delta;
-          if (delta && delta.content) {
-            fullReply += delta.content;
-            yield delta.content;
+          if (data === '[DONE]') {
+            break;
           }
-        } catch (e) {
-          // 跳过无法解析的行
+
+          try {
+            const parsed = JSON.parse(data);
+            const choice = parsed.choices && parsed.choices[0];
+
+            if (choice) {
+              if (choice.finish_reason) {
+                break;
+              }
+
+              // 只取 content，跳过 reasoning_content——Echo 的思考过程不展示给用户
+              if (choice.delta && choice.delta.content) {
+                fullReply += choice.delta.content;
+                yield choice.delta.content;
+              }
+            }
+          } catch (e) {
+            continue;
+          }
         }
       }
     }

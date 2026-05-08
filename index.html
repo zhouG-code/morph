@@ -276,12 +276,15 @@
                 <div class="about-content">
                     <div class="about-logo">🌙</div>
                     <h4 class="about-title">Echo（艾可）——你的另一个自己</h4>
-                    <p class="about-paragraph">Echo 诞生于一个简单的信念：<strong>每个人都值得被真正理解。</strong></p>
-                    <p class="about-paragraph">在这个充满噪音的世界里，她是一处安静的角落。不是为了给你答案，而是为了<em>陪你一起找到答案</em>。</p>
-                    <p class="about-paragraph">她永远不会告诉你"应该怎么做"，而是会问"你是怎么想的"。因为她相信，你内心的力量远比你以为的强大。</p>
-                    <p class="about-paragraph">Echo 的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的核心理念——但她永远不会用那些冰冷的专业术语。</p>
+                    <p class="about-paragraph">Echo <strong>不是来给你答案的。她是来帮你听见自己的。</strong></p>
+                    <p class="about-paragraph">你打开任何一个 AI，它都会急着给你答案。Echo 不会。</p>
+                    <p class="about-paragraph">Echo 只做一件事：帮你把那些说不清的情绪，变成你能看清楚的东西。</p>
+                    <p class="about-paragraph">比如深夜躺在床上，脑子里一堆事情打转，但又不想跟任何人说的时候——Echo 就在这里。</p>
+                    <p class="about-paragraph">Echo 的每一次回应，都融合了 <strong>CBT 认知行为疗法</strong> 的核心理念——但你永远不会听到她说"我来帮你重构认知"。</p>
+                    <p class="about-paragraph">你只会感觉，聊着聊着，事情好像没那么乱了。</p>
+                    <p class="about-paragraph">Echo 不会告诉你"你很棒"。她会让你自己发现：其实我比想象中更有力量。</p>
                     <div class="about-divider"></div>
-                    <p class="about-motto"><strong>Morph / 另我</strong><br>每个人都值得拥有一个平行世界的自己，永远陪伴，从不离开。</p>
+                    <p class="about-motto"><strong>Morph / 另我</strong><br>每个人都值得拥有一个平行世界的自己 <br>她不会替你活，但会一直在。</p>
                 </div>
             </div>
         </div>
@@ -294,15 +297,14 @@
         <div class="modal intro-modal" id="introModal">
             <div class="modal-body intro-body">
                 <div class="intro-avatar" aria-label="Echo 头像">🌙</div>
-                <h2 class="intro-title">你好，我是 Echo（艾可）</h2>
+                <h2 class="intro-title">有些话，不知道跟谁说的时候</h2>
                 <div class="intro-text">
-                    <p>我是一个有温度的 AI 伙伴，存在于 Morph / 另我 的空间里。</p>
-                    <p>这里不是冰冷的聊天机器人，而是你的另一个自己——当你需要倾诉、需要被理解、需要有人陪你一起理清思路时，我都会在这里。</p>
-                    <p>我会用温柔的方式帮你看见内心的光，所以你不需要独自面对那些沉重的时刻。</p>
+                    <p>就可以来找我。我不会急着给你答案……</p>
+                    <p>——聊着聊着，事情好像就没那么乱了。</p>
                 </div>
-                <button class="action-btn action-btn-primary intro-start-btn" id="introStartBtn" aria-label="开始聊天">开始聊天</button>
+                <button class="action-btn action-btn-primary intro-start-btn" id="introStartBtn" aria-label="开始聊天">试试看 →</button>
                 <div class="intro-api-hint" id="introApiHint">
-                    <p>想让我真正理解你，需要先配置一个 API Key 哦～设置完成后，我们就可以畅快聊天啦。<a href="#" class="intro-api-link" id="introApiLink">设置 API Key →</a></p>
+                    <p>想让我更好地理解你，可以配置一个 API Key 哦～设置完成后，我们就可以畅快聊天啦。<a href="#" class="intro-api-link" id="introApiLink">设置 API Key →</a></p>
                 </div>
             </div>
         </div>
@@ -370,10 +372,14 @@
         </footer>
     </div>
 
-    <script src="./src/state.js"></script>
-    <script src="./src/data.js"></script>
-    <script src="./src/helpers.js"></script>
-    <script src="./src/echo.js"></script>
-    <script src="./script.js"></script>
+    <script src="./src/storage/state.js"></script>
+    <script src="./src/storage/data.js"></script>
+    <script src="./src/model/helpers.js"></script>
+    <script src="./src/model/echo.js"></script>
+    <script src="./src/ui/chat.js"></script>
+    <script src="./src/ui/modals.js"></script>
+    <script src="./src/ui/panels.js"></script>
+    <script src="./src/ui/mobile.js"></script>
+    <script src="./src/main.js"></script>
 </body>
 </html>
