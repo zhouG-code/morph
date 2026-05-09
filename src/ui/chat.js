@@ -96,17 +96,17 @@ function initWelcomeBubble() {
 function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
   if (!inputEl || !sendBtnEl || !messagesContainer) return;
 
-  var isSending = false;
+  let isSending = false;
 
   function addMessageToContainer(messageText, sender, timestampFirst) {
-    var messageWrapper = document.createElement('div');
+    const messageWrapper = document.createElement('div');
     messageWrapper.className = 'message ' + sender;
 
-    var timeEl = document.createElement('div');
+    const timeEl = document.createElement('div');
     timeEl.className = 'message-time';
     timeEl.textContent = getCurrentTime();
 
-    var bubbleEl = document.createElement('div');
+    const bubbleEl = document.createElement('div');
     bubbleEl.className = 'bubble ' + sender;
     bubbleEl.textContent = messageText;
 
@@ -125,7 +125,7 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
   }
 
   sendBtnEl.addEventListener('click', async function () {
-    var userText = inputEl.value.trim();
+    const userText = inputEl.value.trim();
     if (!userText || isSending) return;
 
     // Trigger geolocation on first message
@@ -144,7 +144,7 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
 
     // Check if API key is configured
     if (!getEffectiveApiKey()) {
-      var guideMsg = '嘿，你来了。想和你好好聊聊，但需要先配置一个 API Key 哦～ 点击左上角的头像就能找到设置入口，在那里填入你的 DeepSeek API Key 就好啦。';
+      const guideMsg = '嘿，你来了。想和你好好聊聊，但需要先配置一个 API Key 哦～ 点击左上角的头像就能找到设置入口，在那里填入你的 DeepSeek API Key 就好啦。';
       addMessageToContainer(guideMsg, 'echo');
       if (messagesContainer.id !== 'chatMessages') {
         addMessage(guideMsg, 'echo');
@@ -161,9 +161,9 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
       return;
     }
 
-    var echoMsg = addMessageToContainer('', 'echo');
-    var bubbleEl = echoMsg ? echoMsg.querySelector('.bubble') : null;
-    var replyText = '';
+    const echoMsg = addMessageToContainer('', 'echo');
+    const bubbleEl = echoMsg ? echoMsg.querySelector('.bubble') : null;
+    const replyText = '';
 
     try {
       for await (var token of sendToAI(userText)) {

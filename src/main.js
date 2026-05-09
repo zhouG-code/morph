@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   loadTheme();
 
-  var inputEl = document.getElementById('userInput');
-  var sendBtnEl = document.getElementById('sendBtn');
+  const inputEl = document.getElementById('userInput');
+  const sendBtnEl = document.getElementById('sendBtn');
 
   initRipple();
   initKeyboardShortcuts(inputEl, sendBtnEl);
