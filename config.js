@@ -20,7 +20,7 @@ const CONFIG = {
   // 对话历史限制
   // ----------------------------------------------------------
   HISTORY: {
-    MAX_ROUNDS: 24,                       // 发送给 API 的最大对话轮数
+    MAX_ROUNDS: 12,                       // 发送给 API 的最大对话轮数
     MAX_PERSIST: 500,                     // IndexedDB 保留的最大消息数
   },
 

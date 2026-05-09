@@ -4,13 +4,60 @@
 // 移动端导航（联系人 → 聊天页面切换）
 // ============================================================
 
+let _mobileNavInitialized = false;
+// 移动端消息渲染计数器，记录已渲染的消息数量
+let _mobileRenderedCount = 0;
+
+/**
+ * 增量渲染移动端聊天消息
+ * 只渲染从 _mobileRenderedCount 到 State.chatHistory.length 的新增消息
+ * 避免每次切换页面时清空 DOM 重建全部气泡
+ */
+function renderMobileMessages() {
+  const mobileContainer = document.getElementById('mobileChatMessages');
+  if (!mobileContainer) return;
+  // 从上次渲染的位置开始增量追加
+  for (let i = _mobileRenderedCount; i < State.chatHistory.length; i++) {
+    const msg = State.chatHistory[i];
+    const sender = msg.role === 'user' ? 'user' : 'echo';
+    // 对 Echo 的长回复进行分段显示
+    if (sender === 'echo' && msg.content.length > 120 && typeof splitIntoMessages === 'function') {
+      const segments = splitIntoMessages(msg.content, 120, 50);
+      for (let s = 0; s < segments.length; s++) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'message echo';
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble echo';
+        bubble.textContent = segments[s].text;
+        wrapper.appendChild(bubble);
+        mobileContainer.appendChild(wrapper);
+      }
+    } else {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message ' + sender;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble ' + sender;
+      bubble.textContent = msg.content;
+      wrapper.appendChild(bubble);
+      mobileContainer.appendChild(wrapper);
+    }
+  }
+  // 更新计数器
+  _mobileRenderedCount = State.chatHistory.length;
+  // 滚动到底部
+  mobileContainer.scrollTop = mobileContainer.scrollHeight;
+}
+
 function initMobileNavigation() {
-  var contactsPage = document.getElementById('contactsPage');
+  if (_mobileNavInitialized) return;
+  _mobileNavInitialized = true;
+
+  const contactsPage = document.getElementById('contactsPage');
   if (!contactsPage) return;  // 桌面端不执行
 
-  var chatPage = document.getElementById('mobileChatPage');
-  var echoContact = document.getElementById('mobileEchoContact');
-  var backBtn = document.getElementById('mobileBackBtn');
+  const chatPage = document.getElementById('mobileChatPage');
+  const echoContact = document.getElementById('mobileEchoContact');
+  const backBtn = document.getElementById('mobileBackBtn');
 
   // 默认显示联系人页
   contactsPage.classList.add('show');
@@ -19,25 +66,8 @@ function initMobileNavigation() {
   echoContact.addEventListener('click', function () {
     contactsPage.classList.remove('show');
     chatPage.classList.add('show');
-
-    // 渲染历史消息到移动端聊天容器
-    var mobileContainer = document.getElementById('mobileChatMessages');
-    mobileContainer.innerHTML = '';
-    for (var i = 0; i < State.chatHistory.length; i++) {
-      var msg = State.chatHistory[i];
-      var sender = msg.role === 'user' ? 'user' : 'echo';
-
-      var wrapper = document.createElement('div');
-      wrapper.className = 'message ' + sender;
-
-      var bubble = document.createElement('div');
-      bubble.className = 'bubble ' + sender;
-      bubble.textContent = msg.content;
-
-      wrapper.appendChild(bubble);
-      mobileContainer.appendChild(wrapper);
-    }
-    mobileContainer.scrollTop = mobileContainer.scrollHeight;
+    // 增量渲染，不清空 DOM，不闪烁
+    renderMobileMessages();
   });
 
   // 返回按钮
@@ -47,9 +77,9 @@ function initMobileNavigation() {
   });
 
   // 绑定移动端发送按钮
-  var mobileInput = document.getElementById('mobileUserInput');
-  var mobileSendBtn = document.getElementById('mobileSendBtn');
-  var mobileContainer = document.getElementById('mobileChatMessages');
+  const mobileInput = document.getElementById('mobileUserInput');
+  const mobileSendBtn = document.getElementById('mobileSendBtn');
+  const mobileContainer = document.getElementById('mobileChatMessages');
   bindSendButton(mobileInput, mobileSendBtn, mobileContainer);
 }
 
@@ -58,11 +88,11 @@ function initMobileNavigation() {
 // ============================================================
 
 function openMobileAiSettings() {
-  var panel = document.getElementById('aiSettingsPanel');
+  const panel = document.getElementById('aiSettingsPanel');
   if (!panel) return;
 
   // 创建遮罩
-  var overlay = document.createElement('div');
+  const overlay = document.createElement('div');
   overlay.className = 'ai-settings-mobile-overlay';
   overlay.id = 'aiSettingsMobileOverlay';
   overlay.addEventListener('click', closeMobileAiSettings);
@@ -80,12 +110,12 @@ function openMobileAiSettings() {
 }
 
 function closeMobileAiSettings() {
-  var panel = document.getElementById('aiSettingsPanel');
-  var overlay = document.getElementById('aiSettingsMobileOverlay');
+  const panel = document.getElementById('aiSettingsPanel');
+  const overlay = document.getElementById('aiSettingsMobileOverlay');
   if (!panel) return;
 
   // 移回下拉菜单内部
-  var originalParent = document.querySelector('.dropdown-menu');
+  const originalParent = document.querySelector('.dropdown-menu');
   if (originalParent) {
     originalParent.appendChild(panel);
   }
@@ -101,18 +131,22 @@ function closeMobileAiSettings() {
 // QQ 式左侧抽屉菜单（头像点击 + 右滑手势）
 // ============================================================
 
+let _drawerInitialized = false;
 function initDrawer() {
-  var overlay = document.getElementById('drawerOverlay');
-  var drawer = document.getElementById('drawer');
-  var contactsPage = document.getElementById('contactsPage');
+  if (_drawerInitialized) return;
+  _drawerInitialized = true;
+
+  const overlay = document.getElementById('drawerOverlay');
+  const drawer = document.getElementById('drawer');
+  const contactsPage = document.getElementById('contactsPage');
   if (!overlay || !drawer) return;
 
   function open()  { overlay.classList.add('show'); drawer.classList.add('show'); }
   function close() { overlay.classList.remove('show'); drawer.classList.remove('show'); }
 
   // 头像按钮打开抽屉
-  var mobileAvatarBtn = document.getElementById('mobileAvatarBtn');
-  var drawerAvatarBtn = document.getElementById('drawerAvatar');
+  const mobileAvatarBtn = document.getElementById('mobileAvatarBtn');
+  const drawerAvatarBtn = document.getElementById('drawerAvatar');
   if (mobileAvatarBtn) mobileAvatarBtn.addEventListener('click', open);
   if (drawerAvatarBtn) drawerAvatarBtn.addEventListener('click', open);
 
@@ -121,9 +155,9 @@ function initDrawer() {
 
   // 菜单项点击
   drawer.addEventListener('click', function (e) {
-    var item = e.target.closest('.drawer-item');
+    const item = e.target.closest('.drawer-item');
     if (!item) return;
-    var action = item.dataset.action;
+    const action = item.dataset.action;
 
     if (action === 'profile')     { close(); openProfileModal(); }
     if (action === 'memory')      { close(); document.getElementById('navMemoryBtn').click(); }
@@ -135,8 +169,8 @@ function initDrawer() {
 
   // 右滑打开手势（仅在联系人页生效）
   if (!contactsPage) return;
-  var touchStartX = 0;
-  var touchStartY = 0;
+  let touchStartX = 0;
+  let touchStartY = 0;
 
   contactsPage.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1) return;
@@ -145,8 +179,8 @@ function initDrawer() {
   }, { passive: true });
 
   contactsPage.addEventListener('touchend', function (e) {
-    var dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : touchStartX) - touchStartX;
-    var dy = Math.abs((e.changedTouches[0] ? e.changedTouches[0].clientY : touchStartY) - touchStartY);
+    const dx = (e.changedTouches[0] ? e.changedTouches[0].clientX : touchStartX) - touchStartX;
+    const dy = Math.abs((e.changedTouches[0] ? e.changedTouches[0].clientY : touchStartY) - touchStartY);
 
     // 右滑超过 50px 且水平位移大于垂直位移
     if (dx > 50 && dx > dy * 1.5 && touchStartX < 40) {
@@ -160,7 +194,7 @@ function initDrawer() {
 // ============================================================
 
 function initLocationToggle() {
-  var toggle = document.getElementById('locationToggle');
+  const toggle = document.getElementById('locationToggle');
   if (!toggle) return;
 
   toggle.checked = localStorage.getItem('morph-location-enabled') !== 'false';

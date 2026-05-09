@@ -55,11 +55,15 @@ document.addEventListener('DOMContentLoaded', async function () {
   // 开屏弹窗（首次访问）
   initIntroModal();
 
-  // 渲染聊天
+  // 渲染桌面端历史消息
   if (State.chatHistory.length === 0) {
     initWelcomeBubble();
   } else {
     renderHistoryMessages();
+    // 同步移动端渲染计数器，确保增量渲染从正确位置开始
+    if (typeof _mobileRenderedCount !== 'undefined') {
+      _mobileRenderedCount = State.chatHistory.length;
+    }
   }
 
   initSendButton();

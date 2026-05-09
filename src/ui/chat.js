@@ -8,6 +8,30 @@ function addMessage(messageText, sender, timestampFirst) {
   const chatMessages = document.getElementById('chatMessages');
   if (!chatMessages) return null;
 
+  // 对 Echo 的长回复进行分段显示（历史渲染 + 实时收尾时生效）
+  if (sender === 'echo' && messageText.length > 120 && typeof splitIntoMessages === 'function') {
+    const segments = splitIntoMessages(messageText, 120, 50);
+    let firstWrapper = null;
+    for (let s = 0; s < segments.length; s++) {
+      const segText = segments[s].text;
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message echo';
+      const timeEl = document.createElement('div');
+      timeEl.className = 'message-time';
+      timeEl.textContent = getCurrentTime();
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble echo';
+      bubble.textContent = segText;
+      wrapper.appendChild(bubble);
+      wrapper.appendChild(timeEl);
+      chatMessages.appendChild(wrapper);
+      if (s === 0) { firstWrapper = wrapper; }
+    }
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return firstWrapper;
+  }
+
+  // 短文本或用户消息：单气泡
   const messageWrapper = document.createElement('div');
   messageWrapper.className = 'message ' + sender;
 
@@ -31,6 +55,44 @@ function addMessage(messageText, sender, timestampFirst) {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   return messageWrapper;
+}
+
+// ============================================================
+// 实时分段工具函数（流式分段 Step 2）
+// ============================================================
+
+/**
+ * 判断当前文本是否需要分段
+ * @param {string} text - 当前段积累文本
+ * @returns {boolean} 是否需要分段
+ */
+function shouldSplitSegment(text) {
+  // 条件：文本长度 >= 30 字 且 包含句子结束符
+  if (text.length < 30) return false;
+  return /[。！？……]+/.test(text);
+}
+
+/**
+ * 找到文本中最后一个句子边界的位置
+ * @param {string} text - 当前段积累文本
+ * @returns {number} 最后一个句子结束符的索引（包含该符号），未找到返回 -1
+ */
+function findLastSentenceBoundary(text) {
+  for (let i = text.length - 1; i >= 0; i--) {
+    if ('。！？……'.includes(text[i])) {
+      return i + 1;  // 返回包含结束符的位置
+    }
+  }
+  return -1;
+}
+
+/**
+ * 简易 sleep 函数
+ * @param {number} ms - 等待毫秒数
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise(function (resolve) { return setTimeout(resolve, ms); });
 }
 
 // ============================================================
@@ -78,8 +140,8 @@ function renderHistoryMessages() {
 
 function initWelcomeBubble() {
   setTimeout(function () {
-    var nickname = State.userMemory.nickname;
-    var greeting;
+    const nickname = State.userMemory.nickname;
+    let greeting;
     if (nickname) {
       greeting = '嘿，' + nickname + '，你来了。我等了你好久呀。';
     } else {
@@ -162,23 +224,60 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
     }
 
     const echoMsg = addMessageToContainer('', 'echo');
-    const bubbleEl = echoMsg ? echoMsg.querySelector('.bubble') : null;
-    const replyText = '';
+    let bubbleEl = echoMsg ? echoMsg.querySelector('.bubble') : null;
+    let replyText = '';
+    // Step 1：当前段积累区 — 所有 token 先经此处再同步到气泡，为实时分段做准备
+    let currentSegmentText = '';
 
     try {
-      for await (var token of sendToAI(userText)) {
+      for await (const token of sendToAI(userText)) {
         if (token === '__DONE__') {
-          // 流正常结束
+          // 流正常结束 — 定型最后一段，保存消息
+          if (bubbleEl && currentSegmentText) {
+            bubbleEl.textContent = currentSegmentText;
+          }
+          await saveMessage('user', userText);
+          await saveMessage('assistant', replyText);
         } else {
+          // 所有 token 先写入积累区，再同步到气泡（保持打字动画不变）
+          currentSegmentText += token;
           replyText += token;
-          if (bubbleEl) { bubbleEl.textContent = replyText; }
+          if (bubbleEl) { bubbleEl.textContent = currentSegmentText; }
           messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          // Step 2：实时分段检测 — 在流式接收过程中按句子边界分段
+          if (shouldSplitSegment(currentSegmentText)) {
+            const splitIndex = findLastSentenceBoundary(currentSegmentText);
+            if (splitIndex > 0 && splitIndex < currentSegmentText.length) {
+              // 定型前半段到当前气泡
+              const finalizedText = currentSegmentText.substring(0, splitIndex);
+              bubbleEl.textContent = finalizedText;
+              // 剩余文本作为新段的起点
+              const remainingText = currentSegmentText.substring(splitIndex).trimStart();
+
+              // 等待 700ms 后创建新气泡
+              await sleep(700);
+
+              // 创建新气泡
+              const newEchoWrapper = addMessageToContainer('', 'echo');
+              bubbleEl = newEchoWrapper ? newEchoWrapper.querySelector('.bubble') : null;
+              currentSegmentText = remainingText;
+              if (bubbleEl) { bubbleEl.textContent = currentSegmentText; }
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+          }
         }
       }
     } catch (err) {
-      if (!replyText && bubbleEl) {
-        bubbleEl.textContent = API_FALLBACK_TEXT;
+      // API 失败 — 统一在这里处理保存和 fallback 展示
+      console.warn('sendToAI 失败，使用 fallback 兜底:', err);
+      const fallback = API_FALLBACK_TEXT;
+      if (bubbleEl) {
+        bubbleEl.textContent = fallback;
       }
+      replyText = fallback;
+      State.chatHistory.push({ role: 'assistant', content: fallback });
+      await saveMessage('user', userText);
+      await saveMessage('assistant', fallback);
     }
 
     isSending = false;
@@ -210,16 +309,16 @@ function initKeyboardShortcuts(inputEl, sendBtnEl) {
 }
 
 function initRipple() {
-  var targets = document.querySelectorAll('.nav-btn, #sendBtn, .user-avatar, .search-box');
+  const targets = document.querySelectorAll('.nav-btn, #sendBtn, .user-avatar, .search-box');
   targets.forEach(function (target) {
     target.addEventListener('click', function (e) {
-      var existing = target.querySelectorAll('.ripple-effect');
-      for (var i = 0; i < existing.length; i++) { existing[i].remove(); }
+      const existing = target.querySelectorAll('.ripple-effect');
+      for (let i = 0; i < existing.length; i++) { existing[i].remove(); }
 
-      var rippleEl = document.createElement('span');
+      const rippleEl = document.createElement('span');
       rippleEl.className = 'ripple-effect';
-      var rect = target.getBoundingClientRect();
-      var size = Math.max(rect.width, rect.height) * 2;
+      const rect = target.getBoundingClientRect();
+      const size = Math.max(rect.width, rect.height) * 2;
       rippleEl.style.width = size + 'px';
       rippleEl.style.height = size + 'px';
       rippleEl.style.left = (e.clientX - rect.left - size / 2) + 'px';
@@ -235,15 +334,15 @@ function initRipple() {
 // ============================================================
 
 function initChatDropdown() {
-  var dropdown = document.getElementById('chatDropdown');
-  var btn = document.getElementById('chatDropdownBtn');
-  var aiToggle = document.getElementById('dropdownAiSettings');
-  var aiPanel = document.getElementById('aiSettingsPanel');
-  var tempSlider = document.getElementById('tempSlider');
-  var tempValue = document.getElementById('tempValue');
-  var lengthGroup = document.getElementById('lengthGroup');
-  var clearBtn = document.getElementById('dropdownClear');
-  var aboutBtn = document.getElementById('dropdownAbout');
+  const dropdown = document.getElementById('chatDropdown');
+  const btn = document.getElementById('chatDropdownBtn');
+  const aiToggle = document.getElementById('dropdownAiSettings');
+  const aiPanel = document.getElementById('aiSettingsPanel');
+  const tempSlider = document.getElementById('tempSlider');
+  const tempValue = document.getElementById('tempValue');
+  const lengthGroup = document.getElementById('lengthGroup');
+  const clearBtn = document.getElementById('dropdownClear');
+  const aboutBtn = document.getElementById('dropdownAbout');
 
   // 开关下拉
   btn.addEventListener('click', function (e) {
@@ -259,19 +358,19 @@ function initChatDropdown() {
   aiToggle.addEventListener('click', function () { aiPanel.classList.toggle('show'); });
 
   // 温度滑块
-  var savedTemp = parseFloat(localStorage.getItem('morph-temperature')) || CONFIG.API.TEMPERATURE;
+  const savedTemp = parseFloat(localStorage.getItem('morph-temperature')) || CONFIG.API.TEMPERATURE;
   tempSlider.value = savedTemp;
   tempValue.textContent = savedTemp.toFixed(2);
 
   tempSlider.addEventListener('input', function () {
-    var v = parseFloat(tempSlider.value);
+    const v = parseFloat(tempSlider.value);
     tempValue.textContent = v.toFixed(2);
     localStorage.setItem('morph-temperature', v);
   });
 
   // 回复长度单选
-  var savedLen = localStorage.getItem('morph-max-tokens') || String(CONFIG.API.MAX_TOKENS);
-  var radios = lengthGroup.querySelectorAll('input[name="length"]');
+  const savedLen = localStorage.getItem('morph-max-tokens') || String(CONFIG.API.MAX_TOKENS);
+  const radios = lengthGroup.querySelectorAll('input[name="length"]');
   radios.forEach(function (r) {
     if (r.value === savedLen) { r.checked = true; }
     r.addEventListener('change', function () {
@@ -297,20 +396,20 @@ function initChatDropdown() {
 // ============================================================
 
 function initSearchFilter() {
-  var input = document.getElementById('searchInput');
+  const input = document.getElementById('searchInput');
   if (!input) return;
 
-  var debounceTimer = null;
+  let debounceTimer = null;
   input.addEventListener('input', function () {
-    var keyword = input.value.trim().toLowerCase();
+    const keyword = input.value.trim().toLowerCase();
 
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
-      var items = document.querySelectorAll('.conversation');
+      const items = document.querySelectorAll('.conversation');
       items.forEach(function (item) {
-        var name = (item.querySelector('.conv-name') || {}).textContent || '';
-        var preview = (item.querySelector('.conv-preview') || {}).textContent || '';
-        var text = (name + ' ' + preview).toLowerCase();
+        const name = (item.querySelector('.conv-name') || {}).textContent || '';
+        const preview = (item.querySelector('.conv-preview') || {}).textContent || '';
+        const text = (name + ' ' + preview).toLowerCase();
         item.style.display = keyword === '' || text.indexOf(keyword) !== -1 ? '' : 'none';
       });
     }, 200);
@@ -322,7 +421,7 @@ function initSearchFilter() {
 // ============================================================
 
 function initTempHelp() {
-  var btn = document.getElementById('tempHelp');
+  const btn = document.getElementById('tempHelp');
   if (!btn) return;
   btn.addEventListener('click', function (e) {
     e.stopPropagation();

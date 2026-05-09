@@ -85,6 +85,11 @@ function buildSystemPrompt() {
     prompt += '\n\n用户的信息：' + parts.join('，') + '。你们已经聊了一段时间了。';
   }
 
+  // 注入话题记忆 — 让 Echo 知道用户聊过什么，在合适的时机自然提及
+  if (State.userMemory.mentionedTopics && State.userMemory.mentionedTopics.length > 0) {
+    prompt += '\n\n用户之前聊过的话题：' + State.userMemory.mentionedTopics.join('、') + '。在合适的时机可以自然地提及这些话题，让用户感到你记得ta。';
+  }
+
   return prompt;
 }
 
@@ -112,13 +117,30 @@ function buildSystemPrompt() {
  */
 async function* sendToAI(userText) {
   State.chatHistory.push({ role: 'user', content: userText });
-
+  // ===== 按 (user, assistant) 配对取最近 MAX_ROUNDS 轮 =====
+  const maxRounds = CONFIG.HISTORY.MAX_ROUNDS;
+  const recentMessages = [];
+  let rounds = 0;
+  for (let i = State.chatHistory.length - 1; i >= 0 && rounds < maxRounds; i--) {
+    if (State.chatHistory[i].role === 'assistant') {
+      // 找到 assistant，向前取对应的 user
+      recentMessages.unshift(State.chatHistory[i]);
+      if (i > 0 && State.chatHistory[i - 1].role === 'user') {
+        recentMessages.unshift(State.chatHistory[i - 1]);
+        i--; // 跳过已处理的 user
+      }
+      rounds++;
+    } else if (State.chatHistory[i].role === 'user') {
+      // 未配对的 user（用户发了但还没回复），也纳入
+      recentMessages.unshift(State.chatHistory[i]);
+      rounds++;
+    }
+  }
   const systemPrompt = buildSystemPrompt();
   const aiSettings = getAiSettings();
-
   const messages = [
     { role: 'system', content: systemPrompt },
-    ...State.chatHistory.slice(-CONFIG.HISTORY.MAX_ROUNDS * 2)
+    ...recentMessages
   ];
 
   try {
@@ -160,6 +182,7 @@ async function* sendToAI(userText) {
     let fullReply = '';
     let buffer = '';
 
+    outerLoop:
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -177,7 +200,7 @@ async function* sendToAI(userText) {
           const data = trimmed.slice(6).trim();
 
           if (data === '[DONE]') {
-            break;
+            break outerLoop;
           }
 
           try {
@@ -204,17 +227,10 @@ async function* sendToAI(userText) {
 
     // 流自然结束（未收到 [DONE] 标记时兜底保存）
     State.chatHistory.push({ role: 'assistant', content: fullReply });
-    await saveMessage('user', userText);
-    await saveMessage('assistant', fullReply);
     yield '__DONE__';
   } catch (err) {
-    console.warn('API 流式请求失败:', err);
-    const fallback = API_FALLBACK_TEXT;
-    State.chatHistory.push({ role: 'assistant', content: fallback });
-    await saveMessage('user', userText);
-    await saveMessage('assistant', fallback);
-    yield fallback;
-    yield '__DONE__';
+    console.error('API 流式请求失败，交由上层统一处理:', err);
+    throw err;
   }
 }
 
@@ -275,10 +291,40 @@ function extractMemory(text) {
     }
   }
 
-  const topicKeywords = ['编程', '代码', '音乐', '画画', '运动', '读书', '游戏', '工作', '学习', '旅行'];
+  const topicKeywords = [
+    '编程', '代码', '音乐', '画画', '运动', '读书', '游戏', '工作', '学习', '旅行',
+    '摄影', '跑步', '健身', '瑜伽', '做饭', '烹饪', '写作', '电影', '动漫', '日语',
+    '英语', '设计', '跳舞', '游泳', '登山', '徒步', '骑行', '吉他', '钢琴', '书法',
+    '手工', '烘焙', '插花', '剪辑', '调酒', '咖啡', '茶道', '养猫', '养狗', '种植',
+    '冥想', '考试', '面试', '实习', '创业', '搬家', '毕业', '转行', '留学', 'Rust',
+    'Python', 'JavaScript', '焦虑', '失眠', '压力', '家庭', '失恋', '孤独', '迷茫', '自信'
+  ];
   for (let i = 0; i < topicKeywords.length; i++) {
     if (text.indexOf(topicKeywords[i]) !== -1 && State.userMemory.mentionedTopics.indexOf(topicKeywords[i]) === -1) {
       State.userMemory.mentionedTopics.push(topicKeywords[i]);
     }
   }
+
+  // ===== 模式匹配：识别"我最近在学…"、"我喜欢…"等句式 =====
+  const interestPatterns = [
+    /我(?:最近|平时|喜欢|爱好|在学|在练)(.{2,12})/,
+    /对(.{2,12})感兴趣/,
+    /我的(.{2,8})爱好/
+  ];
+  for (let i = 0; i < interestPatterns.length; i++) {
+    const match = text.match(interestPatterns[i]);
+    if (match && match[1]) {
+      const topic = match[1].trim().replace(/[，。！？,!?了]/g, '');
+      if (topic.length >= 2 && topic !== '名字' && topic !== '什么' && topic !== '你') {
+        const alreadyHas = State.userMemory.mentionedTopics.some(function (t) {
+          return t.indexOf(topic) !== -1 || topic.indexOf(t) !== -1;
+        });
+        if (!alreadyHas) {
+          State.userMemory.mentionedTopics.push(topic);
+        }
+      }
+    }
+  }
+  // 有变化时保存记忆（关键词匹配 + 模式匹配都处理完后统一保存一次）
+  saveMemory();
 }
