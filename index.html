@@ -26,13 +26,21 @@
                 <span class="search-icon">🔍</span>
                 <input type="text" id="searchInput" placeholder="搜索" aria-label="搜索会话">
             </div>
-            <div class="conversation active" data-conv-id="echo">
+            <div class="conversation active" data-conv-id="echo" id="contact-echo" onclick="switchCharacter('echo')">
                 <div class="conv-avatar">E</div>
                 <div class="conv-info">
-                    <div class="conv-name">Echo 艾可</div>
+                    <div class="conv-name">Echo 回响</div>
                     <div class="conv-preview">嗯，我在听...</div>
                 </div>
             </div>
+            <div class="conversation" data-conv-id="lens" id="contact-lens" onclick="switchCharacter('lens')">
+                <div class="conv-avatar" style="background:linear-gradient(135deg,#52c41a,#95de64);color:#fff;">L</div>
+                <div class="conv-info">
+                    <div class="conv-name">Lens 棱镜</div>
+                    <div class="conv-preview">理性的陪伴者</div>
+                </div>
+            </div>
+        </aside>
         </aside>
 
         <!-- 3. 右侧聊天界面 -->
@@ -40,8 +48,8 @@
             <header class="chat-top">
                 <div class="chat-status">
                     <span class="status-dot"></span>
-                    <span class="chat-name">Echo</span>
-                    <span class="status-text">在线</span>
+                    <span class="chat-name" id="chat-header-title">Echo</span>
+                    <span class="status-text" id="chat-header-status">在线</span>
                 </div>
                 <div class="chat-top-right">
                     <button class="chat-settings" id="chatDropdownBtn" aria-label="聊天设置">⚙️</button>
@@ -349,8 +357,15 @@
             <div class="conversation active" data-conv-id="echo" id="mobileEchoContact">
                 <div class="conv-avatar">E</div>
                 <div class="conv-info">
-                    <div class="conv-name">Echo 艾可</div>
+                    <div class="conv-name">Echo 回响</div>
                     <div class="conv-preview">嗯，我在听...</div>
+                </div>
+            </div>
+            <div class="conversation" data-conv-id="lens" id="mobileLensContact" onclick="switchCharacter('lens')">
+                <div class="conv-avatar" style="background: linear-gradient(135deg,#52c41a,#95de64);color:#fff;">L</div>
+                <div class="conv-info">
+                    <div class="conv-name">Lens 棱镜</div>
+                    <div class="conv-preview">理性的陪伴者</div>
                 </div>
             </div>
         </div>
@@ -362,8 +377,8 @@
             <button class="mobile-back-btn" id="mobileBackBtn" aria-label="返回">←</button>
             <div class="chat-status">
                 <span class="status-dot"></span>
-                <span class="chat-name">Echo</span>
-                <span class="status-text">在线</span>
+                <span class="chat-name" id="mobile-chat-header-title">Echo</span>
+                <span class="status-text" id="mobile-chat-header-status">在线</span>
             </div>
             <div style="flex:1;"></div>
         </header>
@@ -378,6 +393,7 @@
     <script src="./src/storage/data.js"></script>
     <script src="./src/model/helpers.js"></script>
     <script src="./src/model/echo.js"></script>
+    <script src="./src/model/lens.js"></script>
     <script src="./src/streamSplitter.js"></script>
     <script src="./src/ui/chat.js"></script>
     <script src="./src/ui/modals.js"></script>

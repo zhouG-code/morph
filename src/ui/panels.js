@@ -48,7 +48,12 @@ function initExportImport() {
 
   // 导出
   exportBtn.addEventListener('click', function () {
-    const data = { chatHistory: State.chatHistory, userMemory: State.userMemory, exportedAt: new Date().toISOString() };
+    const data = {
+      chatHistory: State.chatHistory,
+      lensHistory: State.lensHistory,
+      userMemory: State.userMemory,
+      exportedAt: new Date().toISOString()
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -80,9 +85,14 @@ function initExportImport() {
           showToast('文件格式不正确');
           return;
         }
-        // 清空并重建
+        // 清空并重建 Echo 历史
         State.chatHistory.length = 0;
         data.chatHistory.forEach(function (m) { State.chatHistory.push(m); });
+        // 清空并重建棱镜历史
+        State.lensHistory.length = 0;
+        if (data.lensHistory) {
+          data.lensHistory.forEach(function (m) { State.lensHistory.push(m); });
+        }
         if (data.userMemory) {
           State.userMemory.name = data.userMemory.name || null;
           State.userMemory.nickname = data.userMemory.nickname || null;
@@ -93,8 +103,13 @@ function initExportImport() {
         // 写入 IndexedDB
         db.messages.clear().then(function () {
           const ops = [];
+          // 保存 Echo 历史
           for (let i = 0; i < State.chatHistory.length; i++) {
-            ops.push(saveMessage(State.chatHistory[i].role, State.chatHistory[i].content));
+            ops.push(saveMessage(State.chatHistory[i].role, State.chatHistory[i].content, 'echo'));
+          }
+          // 保存 Lens 历史
+          for (let i = 0; i < State.lensHistory.length; i++) {
+            ops.push(saveMessage(State.lensHistory[i].role, State.lensHistory[i].content, 'lens'));
           }
           return Promise.all(ops);
         }).then(function () {
@@ -202,7 +217,14 @@ function initMemoryPanel() {
           if (data.chatHistory && Array.isArray(data.chatHistory)) {
             for (let i = 0; i < data.chatHistory.length; i++) {
               State.chatHistory.push(data.chatHistory[i]);
-              saveMessage(data.chatHistory[i].role, data.chatHistory[i].content);
+              saveMessage(data.chatHistory[i].role, data.chatHistory[i].content, 'echo');
+            }
+            // 导入棱镜历史（兼容旧格式：无 lensHistory 字段时不处理）
+            if (data.lensHistory && Array.isArray(data.lensHistory)) {
+              for (let i = 0; i < data.lensHistory.length; i++) {
+                State.lensHistory.push(data.lensHistory[i]);
+                saveMessage(data.lensHistory[i].role, data.lensHistory[i].content, 'lens');
+              }
             }
             close();
             showToast('已导入 ' + data.chatHistory.length + ' 条消息');

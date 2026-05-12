@@ -2166,3 +2166,32 @@ body,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ================================================================
+   25. 棱镜气泡样式 — 绿色渐变，区别于 Echo 的灰色
+   ================================================================ */
+.bubble.lens {
+  background: linear-gradient(135deg, #e8f5e9, #f1f8e9);
+  border: 1px solid #a5d6a7;
+  color: #1b5e20;
+  border-radius: var(--radius-bubble-ai);
+  box-shadow: 0 1px 3px rgba(76, 175, 80, 0.12);
+}
+.bubble.lens:hover {
+  background: #d7eed8;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.18);
+}
+.bubble.lens::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: rgba(76, 175, 80, 0.25);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.message.lens {
+  align-items: flex-start;
+}

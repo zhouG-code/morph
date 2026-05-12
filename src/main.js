@@ -1,7 +1,8 @@
 // main.js - 启动入口：按正确顺序初始化所有模块
 
 document.addEventListener('DOMContentLoaded', async function () {
-  await loadChatHistory();
+  await loadChatHistory();           // 加载 Echo 历史
+  await loadChatHistory('lens');     // 加载棱镜历史
   await loadUserMemory();
 
   loadTheme();
@@ -57,9 +58,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   // 渲染桌面端历史消息
   if (State.chatHistory.length === 0) {
-    initWelcomeBubble();
+    initWelcomeBubble('echo');
   } else {
-    renderHistoryMessages();
+    renderHistoryMessages('echo');
   }
   // 移动端同步渲染（桌面端渲染完后，移动端也渲染到 #mobileChatMessages）
   renderMobileMessages();

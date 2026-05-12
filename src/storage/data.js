@@ -22,30 +22,42 @@ db.version(1).stores({
  * 这个 db 来自另一个文件，它的作用就是连接浏览器的本地仓库，
  * 帮我们按消息编号从小到大排好序，然后把所有记录一次性拿出来。
  */
-async function loadChatHistory() {
+async function loadChatHistory(character) {
+  character = character || 'echo';
   try {
-    const allMessages = await db.messages.orderBy('id').toArray();
+    // 兼容旧数据：没有 character 字段的默认为 echo
+    const allMessages = await db.messages
+      .filter(function (msg) {
+        if (character === 'lens') {
+          return msg.character === 'lens';
+        }
+        return !msg.character || msg.character === 'echo';
+      })
+      .sortBy('id');
     if (allMessages && allMessages.length > 0) {
+      const targetArray = character === 'echo' ? State.chatHistory : State.lensHistory;
       allMessages.forEach(function (msg) {
-        State.chatHistory.push({ role: msg.role, content: msg.content });
+        targetArray.push({ role: msg.role, content: msg.content });
       });
       return;  // IndexedDB 有数据，直接用
     }
   } catch (e) {
     console.warn('IndexedDB 读取失败:', e);
   }
-  // IndexedDB 为空或读取失败时，从 localStorage 的独立备份恢复
-  try {
-    const raw = localStorage.getItem('morph-messages-ls');
-    if (raw) {
-      const messages = JSON.parse(raw);
-      messages.forEach(function (msg) {
-        State.chatHistory.push({ role: msg.role, content: msg.content });
-      });
-      console.log('从 localStorage 恢复聊天记录: ' + messages.length + ' 条');
+  // localStorage fallback（仅用于 echo，棱镜数据量少且不重要）
+  if (character === 'echo') {
+    try {
+      const raw = localStorage.getItem('morph-messages-ls');
+      if (raw) {
+        const messages = JSON.parse(raw);
+        messages.forEach(function (msg) {
+          State.chatHistory.push({ role: msg.role, content: msg.content });
+        });
+        console.log('从 localStorage 恢复聊天记录: ' + messages.length + ' 条');
+      }
+    } catch (e) {
+      console.warn('localStorage 读取失败:', e);
     }
-  } catch (e) {
-    console.warn('localStorage 读取失败:', e);
   }
 }
 
@@ -96,9 +108,15 @@ async function saveMemory() {
 }
 
 // 存一条新消息：把纸条贴到日记本里；如果本子太厚，就扔掉最旧的一半
-async function saveMessage(role, content) {
+async function saveMessage(role, content, character) {
+  character = character || 'echo';
   try {
-    await db.messages.put({ role: role, content: content, timestamp: Date.now() });
+    await db.messages.put({
+      role: role,
+      content: content,
+      timestamp: Date.now(),
+      character: character
+    });
 
     const count = await db.messages.count();
     const limit = CONFIG.HISTORY.MAX_PERSIST;
@@ -110,7 +128,7 @@ async function saveMessage(role, content) {
     console.warn('IndexedDB 写入失败:', e);
   }
   // 无论 IndexedDB 成功还是失败，都独立追加备份到 localStorage（不依赖 IndexedDB 读取）
-  appendMessageToLocalStorage(role, content);
+  appendMessageToLocalStorage(role, content, character);
 }
 
 /**
@@ -119,7 +137,8 @@ async function saveMessage(role, content) {
  * @param {string} role - 消息角色：'user' 或 'assistant'
  * @param {string} content - 消息文本内容
  */
-function appendMessageToLocalStorage(role, content) {
+function appendMessageToLocalStorage(role, content, character) {
+  character = character || 'echo';
   try {
     const LS_MESSAGES_KEY = 'morph-messages-ls';
     let messages = [];
@@ -129,7 +148,7 @@ function appendMessageToLocalStorage(role, content) {
       if (raw) messages = JSON.parse(raw);
     } catch (e) { /* 忽略解析错误 */ }
     // 追加新消息
-    messages.push({ role: role, content: content, timestamp: Date.now() });
+    messages.push({ role: role, content: content, timestamp: Date.now(), character: character });
     // 同样受 MAX_PERSIST 限制，避免撑爆 localStorage（5MB限制）
     const limit = (typeof CONFIG !== 'undefined' && CONFIG.HISTORY && CONFIG.HISTORY.MAX_PERSIST)
       ? CONFIG.HISTORY.MAX_PERSIST

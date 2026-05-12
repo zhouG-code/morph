@@ -8,19 +8,19 @@ function addMessage(messageText, sender, timestampFirst) {
   const chatMessages = document.getElementById('chatMessages');
   if (!chatMessages) return null;
 
-  // 对 Echo 的长回复进行分段显示（历史渲染 + 实时收尾时生效）
-  if (sender === 'echo' && messageText.length > 30 && typeof splitIntoMessages === 'function') {
+  // 对 Echo 和棱镜的长回复进行分段显示
+  if ((sender === 'echo' || sender === 'lens') && messageText.length > 30 && typeof splitIntoMessages === 'function') {
     const segments = splitIntoMessages(messageText);
     let firstWrapper = null;
     for (let s = 0; s < segments.length; s++) {
       const segText = segments[s].text;
       const wrapper = document.createElement('div');
-      wrapper.className = 'message echo';
+      wrapper.className = 'message ' + sender;
       const timeEl = document.createElement('div');
       timeEl.className = 'message-time';
       timeEl.textContent = getCurrentTime();
       const bubble = document.createElement('div');
-      bubble.className = 'bubble echo';
+      bubble.className = 'bubble ' + sender;
       bubble.textContent = segText;
       wrapper.appendChild(bubble);
       wrapper.appendChild(timeEl);
@@ -100,14 +100,15 @@ function sleep(ms) {
 // ============================================================
 
 function createTypingIndicator() {
+  const senderClass = State.currentCharacter === 'lens' ? 'lens' : 'echo';
   const chatMessages = document.getElementById('chatMessages');
   if (!chatMessages) return null;
 
   const messageWrapper = document.createElement('div');
-  messageWrapper.className = 'message echo typing-indicator';
+  messageWrapper.className = 'message ' + senderClass + ' typing-indicator';
 
   const bubbleEl = document.createElement('div');
-  bubbleEl.className = 'bubble echo typing-bubble';
+  bubbleEl.className = 'bubble ' + senderClass + ' typing-bubble';
 
   const dots = document.createElement('span');
   dots.className = 'typing-dots';
@@ -131,26 +132,83 @@ function removeTypingIndicator(el) {
   }
 }
 
-function renderHistoryMessages() {
-  for (let i = 0; i < State.chatHistory.length; i++) {
-    const msg = State.chatHistory[i];
-    addMessage(msg.content, msg.role === 'user' ? 'user' : 'echo');
+function renderHistoryMessages(character) {
+  character = character || State.currentCharacter || 'echo';
+  const targetHistory = character === 'echo' ? State.chatHistory : State.lensHistory;
+  const senderName = character === 'echo' ? 'echo' : 'lens';
+  for (let i = 0; i < targetHistory.length; i++) {
+    const msg = targetHistory[i];
+    addMessage(msg.content, msg.role === 'user' ? 'user' : senderName);
   }
 }
 
-function initWelcomeBubble() {
+function initWelcomeBubble(character) {
+  character = character || 'echo';
   setTimeout(function () {
-    const nickname = State.userMemory.nickname;
     let greeting;
-    if (nickname) {
-      greeting = '嘿，' + nickname + '，你来了。我等了你好久呀。';
+    if (character === 'echo') {
+      const nickname = State.userMemory.nickname;
+      if (nickname) {
+        greeting = '嘿，' + nickname + '，你来了。我等了你好久呀。';
+      } else {
+        greeting = '嘿，你来了。我等了你好久呀。';
+      }
     } else {
-      greeting = '嘿，你来了。我等了你好久呀。';
+      greeting = '有什么事情在脑子里打转吗？说出来，我们一起梳理一下。';
     }
-    addMessage(greeting, 'echo');
+    addMessage(greeting, character === 'echo' ? 'echo' : 'lens');
   }, CONFIG.UI.WELCOME_DELAY_MS);
 }
 
+/**
+ *切换角色 
+ */
+function switchCharacter(character) {
+  // 已经在当前角色，不做任何事
+  if (character === State.currentCharacter) return;
+  // 切换角色标记
+  State.currentCharacter = character;
+  // 清空聊天区
+  const chatArea = document.getElementById('chatMessages');
+  chatArea.innerHTML = '';
+  // 高亮侧边栏联系人
+  document.querySelectorAll('.conversation').forEach(function (el) {
+    el.classList.remove('active');
+  });
+  document.getElementById('contact-' + character).classList.add('active');
+  // 更换角色名和状态文本
+  document.getElementById('chat-header-title').textContent =
+    character === 'echo' ? 'Echo' : 'Lens';
+  document.getElementById('chat-header-status').textContent =
+    character === 'echo' ? '在线' : '在线';
+  // 桌面端 UI 更新
+  document.getElementById('chat-header-title').textContent =
+    character === 'echo' ? 'Echo' : 'Lens';
+  document.getElementById('chat-header-status').textContent =
+    character === 'echo' ? '在线' : '在线';
+  document.getElementById('userInput').placeholder =
+    character === 'echo' ? '和 Echo 说点什么吧...' : '和Lens聊聊你的想法...';
+  // 移动端 UI 同步更新
+  document.getElementById('mobile-chat-header-title').textContent =
+    character === 'echo' ? 'Echo' : 'Lens';
+  document.getElementById('mobile-chat-header-status').textContent = '在线';
+  document.getElementById('mobileUserInput').placeholder =
+    character === 'echo' ? '和 Echo 说点什么吧...' : '和Lens聊聊你的想法...';
+
+  // 加载聊天历史
+  const targetHistory = character === 'echo' ? State.chatHistory : State.lensHistory;
+  if (targetHistory.length === 0) {
+    initWelcomeBubble(character);
+  } else {
+    renderHistoryMessages(character);
+  }
+  // 滚动到底部
+  setTimeout(function () {
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }, 100);
+}
+
+// =
 /**
  * 通用发送绑定：将输入框、发送按钮、消息容器组装为完整的聊天发送流程
  * 桌面端和移动端各自调用，共享 State.chatHistory / State.userMemory / sendToAI
@@ -202,20 +260,28 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
       addMessage(userText, 'user');
     }
     inputEl.value = '';
-    extractMemory(userText);
+    // 仅 Echo 角色提取用户兴趣，棱镜不提取
+    if (State.currentCharacter === 'echo') {
+      extractMemory(userText);
+    }
 
     // Check if API key is configured
     if (!getEffectiveApiKey()) {
       const guideMsg = '嘿，你来了。想和你好好聊聊，但需要先配置一个 API Key 哦～ 点击左上角的头像就能找到设置入口，在那里填入你的 DeepSeek API Key 就好啦。';
-      addMessageToContainer(guideMsg, 'echo');
+      addMessageToContainer(guideMsg, State.currentCharacter === 'lens' ? 'lens' : 'echo');
       if (messagesContainer.id !== 'chatMessages') {
-        addMessage(guideMsg, 'echo');
+        addMessage(guideMsg, State.currentCharacter === 'lens' ? 'lens' : 'echo');
       }
-      // Save to history so context is preserved
-      State.chatHistory.push({ role: 'user', content: userText });
-      State.chatHistory.push({ role: 'assistant', content: guideMsg });
-      saveMessage('user', userText);
-      saveMessage('assistant', guideMsg);
+      // 保存到对应角色的历史数组
+      if (State.currentCharacter === 'echo') {
+        State.chatHistory.push({ role: 'user', content: userText });
+        State.chatHistory.push({ role: 'assistant', content: guideMsg });
+      } else {
+        State.lensHistory.push({ role: 'user', content: userText });
+        State.lensHistory.push({ role: 'assistant', content: guideMsg });
+      }
+      saveMessage('user', userText, State.currentCharacter);
+      saveMessage('assistant', guideMsg, State.currentCharacter);
 
       isSending = false;
       sendBtnEl.disabled = false;
@@ -223,21 +289,24 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
       return;
     }
 
-    const echoMsg = addMessageToContainer('', 'echo');
+    const senderClass = State.currentCharacter === 'lens' ? 'lens' : 'echo';
+    const echoMsg = addMessageToContainer('', senderClass);
     let bubbleEl = echoMsg ? echoMsg.querySelector('.bubble') : null;
     let replyText = '';
     // Step 1：当前段积累区 — 所有 token 先经此处再同步到气泡，为实时分段做准备
     let currentSegmentText = '';
 
     try {
-      for await (const token of sendToAI(userText)) {
+      // 根据当前角色选择 AI 引擎
+      const aiGenerator = State.currentCharacter === 'lens' ? lensSendToAI(userText) : sendToAI(userText);
+      for await (const token of aiGenerator) {
         if (token === '__DONE__') {
           // 流正常结束 — 定型最后一段，保存消息
           if (bubbleEl && currentSegmentText) {
             bubbleEl.textContent = currentSegmentText;
           }
-          await saveMessage('user', userText);
-          await saveMessage('assistant', replyText);
+          await saveMessage('user', userText, State.currentCharacter);
+          await saveMessage('assistant', replyText, State.currentCharacter);
         } else {
           // 所有 token 先写入积累区，再同步到气泡（保持打字动画不变）
           currentSegmentText += token;
@@ -258,7 +327,7 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
               await sleep(700);
 
               // 创建新气泡
-              const newEchoWrapper = addMessageToContainer('', 'echo');
+              const newEchoWrapper = addMessageToContainer('', senderClass);
               bubbleEl = newEchoWrapper ? newEchoWrapper.querySelector('.bubble') : null;
               currentSegmentText = remainingText;
               if (bubbleEl) { bubbleEl.textContent = currentSegmentText; }
@@ -270,14 +339,19 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
     } catch (err) {
       // API 失败 — 统一在这里处理保存和 fallback 展示
       console.warn('sendToAI 失败，使用 fallback 兜底:', err);
-      const fallback = API_FALLBACK_TEXT;
+      const fallback = State.currentCharacter === 'lens' ? LENS_FALLBACK_TEXT : API_FALLBACK_TEXT;
       if (bubbleEl) {
         bubbleEl.textContent = fallback;
       }
       replyText = fallback;
-      State.chatHistory.push({ role: 'assistant', content: fallback });
-      await saveMessage('user', userText);
-      await saveMessage('assistant', fallback);
+      // API 失败时推送到对应角色的历史数组
+      if (State.currentCharacter === 'echo') {
+        State.chatHistory.push({ role: 'assistant', content: fallback });
+      } else {
+        State.lensHistory.push({ role: 'assistant', content: fallback });
+      }
+      await saveMessage('user', userText, State.currentCharacter);
+      await saveMessage('assistant', fallback, State.currentCharacter);
     }
 
     isSending = false;

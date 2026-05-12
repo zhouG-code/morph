@@ -17,6 +17,7 @@ function openConfirmDialogWithText(text, onConfirm) {
 function openConfirmDialog() {
   openConfirmDialogWithText(CONFIRM_DEFAULT_TEXT, async function () {
     State.chatHistory.length = 0;
+    State.lensHistory.length = 0;      // 新增：同时清空棱镜历史
     _mobileRenderedCount = 0;
     try { await db.messages.clear(); } catch (e) { /* ignore */ }
     document.getElementById('chatMessages').innerHTML = '';

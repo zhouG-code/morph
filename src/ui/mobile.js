@@ -16,18 +16,27 @@ let _mobileRenderedCount = 0;
 function renderMobileMessages() {
   const mobileContainer = document.getElementById('mobileChatMessages');
   if (!mobileContainer) return;
+  const targetHistory = State.currentCharacter === 'echo' ? State.chatHistory : State.lensHistory;
+  const senderName = State.currentCharacter === 'echo' ? 'echo' : 'lens';
+  // 检查容器中子元素数量是否和历史匹配，不匹配则清空重建
+  // （角色切换时 _mobileRenderedCount 比实际消息数多，需要清空）
+  if (mobileContainer.children.length > targetHistory.length ||
+      mobileContainer.children.length === 0 && targetHistory.length > 0) {
+    mobileContainer.innerHTML = '';
+    _mobileRenderedCount = 0;
+  }
   // 从上次渲染的位置开始增量追加
-  for (let i = _mobileRenderedCount; i < State.chatHistory.length; i++) {
-    const msg = State.chatHistory[i];
-    const sender = msg.role === 'user' ? 'user' : 'echo';
-    // 对 Echo 的长回复进行分段显示
-    if (sender === 'echo' && msg.content.length > 30 && typeof splitIntoMessages === 'function') {
+  for (let i = _mobileRenderedCount; i < targetHistory.length; i++) {
+    const msg = targetHistory[i];
+    const sender = msg.role === 'user' ? 'user' : senderName;
+    // 对 Echo 和棱镜的长回复进行分段显示
+    if ((sender === 'echo' || sender === 'lens') && msg.content.length > 30 && typeof splitIntoMessages === 'function') {
       const segments = splitIntoMessages(msg.content);
       for (let s = 0; s < segments.length; s++) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'message echo';
+        wrapper.className = 'message ' + sender;
         const bubble = document.createElement('div');
-        bubble.className = 'bubble echo';
+        bubble.className = 'bubble ' + sender;
         bubble.textContent = segments[s].text;
         wrapper.appendChild(bubble);
         mobileContainer.appendChild(wrapper);
@@ -43,7 +52,7 @@ function renderMobileMessages() {
     }
   }
   // 更新计数器
-  _mobileRenderedCount = State.chatHistory.length;
+  _mobileRenderedCount = targetHistory.length;
   // 滚动到底部
   mobileContainer.scrollTop = mobileContainer.scrollHeight;
 }
@@ -66,9 +75,21 @@ function initMobileNavigation() {
   echoContact.addEventListener('click', function () {
     contactsPage.classList.remove('show');
     chatPage.classList.add('show');
+    switchCharacter('echo');        // 切换角色到 Echo
     // 增量渲染，不清空 DOM，不闪烁
     renderMobileMessages();
   });
+
+  // 棱镜移动端联系人
+  const lensContact = document.getElementById('mobileLensContact');
+  if (lensContact) {
+    lensContact.addEventListener('click', function () {
+      contactsPage.classList.remove('show');
+      chatPage.classList.add('show');
+      switchCharacter('lens');        // 切换角色到棱镜
+      renderMobileMessages();
+    });
+  }
 
   // 返回按钮
   backBtn.addEventListener('click', function () {

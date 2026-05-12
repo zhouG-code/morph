@@ -10,6 +10,8 @@ const State = {
     mentionedTopics: []
   },
   chatHistory: [],
+  lensHistory: [],
+  currentCharacter:"echo", // 当前角色
   // Location state (not persisted — fetched fresh each session)
   userLocation: null,
   locationRequested: false
