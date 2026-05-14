@@ -195,6 +195,9 @@ function switchCharacter(character) {
   // 清空聊天区
   const chatArea = document.getElementById('chatMessages');
   chatArea.innerHTML = '';
+  // 同步清空移动端
+  const mobileArea = document.getElementById('mobileChatMessages');
+  if (mobileArea) mobileArea.innerHTML = '';
   // 高亮侧边栏联系人
   document.querySelectorAll('.conversation').forEach(function (el) {
     el.classList.remove('active');
@@ -235,6 +238,10 @@ function switchCharacter(character) {
     initWelcomeBubble(character);
   } else {
     renderHistoryMessages(character);
+    // 同步重新渲染移动端
+    if (typeof renderMobileMessages === 'function') {
+      renderMobileMessages();
+    }
   }
   // 滚动到底部
   setTimeout(function () {
@@ -294,6 +301,11 @@ function bindSendButton(inputEl, sendBtnEl, messagesContainer) {
       addMessage(userText, 'user');
     }
     inputEl.value = '';
+    // 移动端发送后收起键盘，避免遮挡回复
+    if (window.innerWidth <= 768) {
+      inputEl.blur();
+    }
+    inputEl.style.height = 'auto';
     // 仅 Echo 角色提取用户兴趣，棱镜不提取
     if (State.currentCharacter === 'echo') {
       extractMemory(userText);
